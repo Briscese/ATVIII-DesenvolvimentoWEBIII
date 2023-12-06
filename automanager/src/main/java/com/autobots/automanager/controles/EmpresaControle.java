@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import com.autobots.automanager.entidades.Empresa;
 import com.autobots.automanager.entidades.Endereco;
 import com.autobots.automanager.entidades.Telefone;
+import com.autobots.automanager.modelos.AdicionadorLinkEmpresas;
 import com.autobots.automanager.modelos.EmpresaAtualizacao;
 import com.autobots.automanager.modelos.EmpresaCadastro;
 import com.autobots.automanager.modelos.EmpresaDTO;
@@ -42,50 +43,46 @@ public class EmpresaControle {
     
     @Autowired
     private EmpresaSelecionador empresaSelecionador;
+    
+    @Autowired
+    private AdicionadorLinkEmpresas adicionadorLinkEmpresas;
 
+
+
+    
+    
     @GetMapping("/{id}")
     public ResponseEntity<EntityModel<EmpresaDTO>> obterEmpresa(@PathVariable Long id) {
-        List<Empresa> empresas = repositorioEmpresa.findAll();
-        Optional<Empresa> empresaOptional = empresaSelecionador.selecionar(empresas, id);
+        try {
+            Empresa empresa = repositorioEmpresa.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Empresa não encontrada"));
 
-        if (empresaOptional.isPresent()) {
-            Empresa empresaSelecionada = empresaOptional.get();
-            EmpresaDTO empresaDTO = converterParaDTO(empresaSelecionada);
+            // Adicionar links HATEOAS
+            adicionadorLinkEmpresas.adicionarLink(empresa);
 
-            // Criar links HATEOAS
-            EntityModel<EmpresaDTO> resource = EntityModel.of(empresaDTO);
-
-            // Link para obter a própria empresa
-            Link selfLink = WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(EmpresaControle.class).obterEmpresa(id)).withSelfRel();
-            resource.add(selfLink);
-
-            // Link para UPDATE
-            Link updateLink = WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(EmpresaControle.class).atualizarEmpresa(id, empresaDTO)).withRel("update");
-            resource.add(updateLink);
-
-            // Link para DELETE
-            Link deleteLink = WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(EmpresaControle.class).excluirEmpresa(id)).withRel("delete");
-            resource.add(deleteLink);
+            // Criar link HATEOAS para a empresa
+            Link selfLink = Link.of(String.format("/empresas/%d", empresa.getId())).withSelfRel();
+            EntityModel<EmpresaDTO> resource = EntityModel.of(converterParaDTO(empresa), selfLink);
 
             return new ResponseEntity<>(resource, HttpStatus.OK);
-        } else {
+        } catch (IllegalArgumentException e) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
-
+    
     @GetMapping
     public CollectionModel<EntityModel<EmpresaDTO>> obterEmpresas() {
         List<Empresa> empresas = repositorioEmpresa.findAll();
         List<EntityModel<EmpresaDTO>> empresasDTO = empresas.stream()
                 .map(empresa -> {
                     EmpresaDTO empresaDTO = converterParaDTO(empresa);
-                    Link selfLink = WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(EmpresaControle.class).obterEmpresa(empresa.getId())).withSelfRel();
+                    Link selfLink = Link.of(String.format("/empresas/%d", empresa.getId())).withSelfRel();
                     return EntityModel.of(empresaDTO, selfLink);
                 })
                 .collect(Collectors.toList());
 
-        Link linkSelf = WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(EmpresaControle.class).obterEmpresas()).withSelfRel();
-        Link linkPost = WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(EmpresaControle.class).cadastrarEmpresa(null)).withRel("post");
+        Link linkSelf = Link.of("/empresas").withSelfRel();
+        Link linkPost = Link.of("/empresas").withRel("post");
 
         return CollectionModel.of(empresasDTO, linkSelf, linkPost);
     }
@@ -129,17 +126,26 @@ public class EmpresaControle {
 
 
     @PostMapping
-    public ResponseEntity<?> cadastrarEmpresa(@RequestBody Empresa empresa) {
+    public ResponseEntity<EntityModel<Empresa>> cadastrarEmpresa(@RequestBody EmpresaDTO empresaDTO) {
         try {
-            Empresa novaEmpresa = empresaCadastro.cadastrarNovaEmpresa(empresa);
+            // Converter o DTO para a entidade
+            Empresa novaEmpresa = empresaDTO.toEmpresa();
+
+            // Lógica para cadastrar a nova empresa
+            Empresa empresaCadastrada = empresaCadastro.cadastrarNovaEmpresa(novaEmpresa, null); // você precisa fornecer a lista de IDs de usuários
 
             // Criar link HATEOAS para a nova empresa
-            // (Aqui você pode adicionar links conforme necessário)
+            Link selfLink = Link.of(String.format("/empresas/%d", empresaCadastrada.getId())).withSelfRel();
+            EntityModel<Empresa> resource = EntityModel.of(empresaCadastrada, selfLink);
 
-            return new ResponseEntity<>(novaEmpresa, HttpStatus.CREATED);
-        } catch (Exception e) {
+            return new ResponseEntity<>(resource, HttpStatus.CREATED);
+        } catch (IllegalArgumentException e) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
+    }
+    
+    private Empresa converterDTOparaEntidade(EmpresaDTO empresaDTO) {
+        return empresaDTO.toEmpresa();
     }
 
     @PutMapping("/{id}")
