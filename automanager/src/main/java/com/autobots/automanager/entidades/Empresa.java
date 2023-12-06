@@ -14,11 +14,13 @@ import javax.persistence.Id;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 
+import org.springframework.hateoas.EntityModel;
+
 import lombok.Data;
 
 @Data
 @Entity
-public class Empresa {
+public class Empresa extends EntityModel<Empresa> {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
@@ -32,8 +34,8 @@ public class Empresa {
 	private Endereco endereco;
 	@Column(nullable = false)
 	private Date cadastro;
-	@OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
-	private Set<Usuario> usuarios = new HashSet<>();
+	@OneToMany(mappedBy = "empresa", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<Usuario> usuarios = new HashSet<>();
 	@OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
 	private Set<Mercadoria> mercadorias = new HashSet<>();
 	@OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)

@@ -8,11 +8,13 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 
+import org.springframework.hateoas.RepresentationModel;
+
 import lombok.Data;
 
 @Data
 @Entity
-public class Mercadoria {
+public class Mercadoria extends RepresentationModel<Mercadoria> {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
@@ -30,4 +32,12 @@ public class Mercadoria {
 	private double valor;
 	@Column()
 	private String descricao;
+	
+	public Mercadoria() {
+        this.cadastro = new Date();
+        this.fabricao = new Date();
+        this.validade = new Date();
+    }
+
+	
 }

@@ -20,9 +20,11 @@ public abstract class Credencial {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 	@Column(nullable = false)
-	private Date criacao;
+	public Date criacao;
 	@Column()
 	private Date ultimoAcesso;
 	@Column(nullable = false)
 	private boolean inativo;
+	public Credencial() {
+    }
 }

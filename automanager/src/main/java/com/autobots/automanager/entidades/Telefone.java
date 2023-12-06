@@ -26,6 +26,10 @@ public class Telefone {
 	private String numero;
 	
 	@ManyToOne
+    @JoinColumn(name = "usuario_id") // Certifique-se de ajustar o nome da coluna conforme necessário
+    private Usuario usuario;
+	
+	@ManyToOne
     @JoinColumn(name = "cliente_id")
 	@JsonBackReference
     private Cliente cliente;

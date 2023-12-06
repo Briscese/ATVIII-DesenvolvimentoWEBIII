@@ -39,4 +39,9 @@ public class Venda {
 	private Set<Servico> servicos = new HashSet<>();
 	@OneToOne(fetch = FetchType.EAGER, cascade = { CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REFRESH })
 	private Veiculo veiculo;
+	
+	public Venda() {
+		this.cadastro = new Date();
+	}
+	
 }
